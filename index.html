@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Código QR Creativos</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de la librería QRCode.js -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Estilo personalizado para centrar el QR y manejar el canvas */
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        #qrcode img, #qrcode canvas {
+            border-radius: 0.75rem; /* rounded-xl de Tailwind */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Contenedor Principal de la Aplicación -->
+    <div class="w-full max-w-lg bg-white shadow-2xl rounded-2xl p-6 md:p-8">
+
+        <header class="text-center mb-6">
+            <h1 class="text-4xl font-extrabold text-indigo-700 tracking-tight mb-2">
+                GENERADOR DE CODIGO QR CREATIVOS
+            </h1>
+            <p class="text-gray-500">Convierte cualquier texto o enlace en un Código QR.</p>
+        </header>
+
+        <!-- Campo de Entrada del Texto/URL -->
+        <div class="mb-6">
+            <label for="qrInput" class="block text-sm font-medium text-gray-700 mb-2">
+                Texto o URL a Codificar:
+            </label>
+            <textarea
+                id="qrInput"
+                rows="3"
+                placeholder="Escribe un mensaje, un enlace web o un número de teléfono..."
+                class="w-full p-3 border-2 border-indigo-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 resize-none text-gray-800"
+                oninput="generateQRCode()"
+            ></textarea>
+        </div>
+        
+        <!-- El bloque de generación de logo ha sido ELIMINADO -->
+
+        <!-- Área de Visualización del QR -->
+        <div class="mt-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4 border-b pb-2">Tu Código QR Generado:</h2>
+            
+            <div id="qrcode" class="bg-indigo-50 border-4 border-indigo-300 rounded-xl transition duration-300 min-h-[250px] flex items-center justify-center">
+                <!-- Aquí se renderizará el código QR -->
+                <p id="initialMessage" class="text-gray-400 p-4 text-center">
+                    Empieza a escribir arriba para generar tu código.
+                </p>
+            </div>
+        </div>
+
+        <!-- Botón de Descarga -->
+        <div class="mt-6 flex justify-center">
+             <button
+                id="downloadButton"
+                onclick="downloadQRCode()"
+                class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-full shadow-lg hover:bg-indigo-700 transition duration-200 opacity-50 cursor-not-allowed"
+                disabled
+            >
+                Descargar QR (PNG)
+            </button>
+        </div>
+        
+        <!-- Pie de página con la autoría -->
+        <footer class="mt-8 text-center text-sm text-gray-400 pt-4 border-t border-gray-200">
+            APP CREADA POR LUIS GALAN / GS CREATIVOS
+        </footer>
+
+    </div>
+
+    <script>
+        // --- Variables Globales ---
+        const qrInput = document.getElementById('qrInput');
+        const qrcodeContainer = document.getElementById('qrcode');
+        const initialMessage = document.getElementById('initialMessage');
+        const downloadButton = document.getElementById('downloadButton');
+        
+        let qrCodeInstance = null; // Instancia de la librería QRCode.js
+        const QR_CANVAS_SIZE = 256; // Tamaño del canvas del QR
+
+        /**
+         * Inicializa y genera el código QR basado en el contenido del input.
+         */
+        function generateQRCode() {
+            const text = qrInput.value.trim();
+
+            if (qrCodeInstance) {
+                // Limpia la instancia anterior
+                qrcodeContainer.innerHTML = '';
+            }
+
+            if (text === '') {
+                // Muestra el mensaje inicial y deshabilita la descarga
+                qrcodeContainer.appendChild(initialMessage);
+                initialMessage.classList.remove('hidden');
+                downloadButton.classList.add('opacity-50', 'cursor-not-allowed');
+                downloadButton.disabled = true;
+                return;
+            }
+
+            // Oculta el mensaje inicial si hay texto
+            initialMessage.classList.add('hidden');
+
+            // Genera una nueva instancia del QR (usando nivel M para mejor escaneo simple)
+            qrCodeInstance = new QRCode(qrcodeContainer, {
+                text: text,
+                width: QR_CANVAS_SIZE,
+                height: QR_CANVAS_SIZE,
+                colorDark : "#4338ca", // Índigo 700
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M // Nivel de corrección medio, óptimo para uso general
+            });
+
+            // Habilita la descarga
+            downloadButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            downloadButton.disabled = false;
+        }
+
+        /**
+         * Descarga el código QR generado como una imagen PNG.
+         * Se añade un fondo blanco explícito para mejorar la compatibilidad y escaneo.
+         */
+        function downloadQRCode() {
+            if (!qrCodeInstance) return;
+
+            // QRCode.js genera el QR en un elemento 'canvas'.
+            const canvas = qrcodeContainer.querySelector('canvas');
+            
+            if (canvas) {
+                // Crear un nuevo canvas temporal para asegurar el fondo blanco para la descarga
+                const tempCanvas = document.createElement('canvas');
+                const ctx = tempCanvas.getContext('2d');
+                
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                
+                // 1. Dibujar un fondo blanco sólido
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                
+                // 2. Dibujar el QR (canvas original) encima del fondo blanco
+                ctx.drawImage(canvas, 0, 0);
+                
+                // Convierte el canvas temporal a una URL de imagen (Data URL)
+                const dataURL = tempCanvas.toDataURL("image/png");
+                
+                // Crea un enlace temporal para la descarga
+                const a = document.createElement('a');
+                a.href = dataURL;
+                a.download = 'qr_code_generado.png';
+                
+                // Simula un clic para iniciar la descarga
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } else {
+                console.error('Canvas del QR no encontrado para descargar.');
+            }
+        }
+
+        // --- Inicialización ---
+
+        window.onload = function() {
+            generateQRCode();
+        };
+
+    </script>
+</body>
+</html>
